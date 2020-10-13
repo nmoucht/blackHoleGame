@@ -2,7 +2,24 @@ import pygame
 import time
 import random
 
+import sys
+import os
+
+def resource_path(relative_path):
+    try:
+    # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+
+
 class gameObject:
+
+    blackHoleMassMultiplier = 1
+
     white = (255, 255, 255)
     black = (0, 0, 0)
     red = (255, 0, 0)
@@ -30,7 +47,7 @@ class gameObject:
     planetPosition = []
     planetVelocity = []
 
-    sky = pygame.image.load("sky.jpg")
+    sky = pygame.image.load(resource_path("assets/sky.jpg"))
 
     def initGame(self):
         pygame.init()
@@ -41,24 +58,23 @@ class gameObject:
         self.initPlanets()
 
     def initShip(self):
-        self.shipPic = pygame.image.load("ship.png")
+        self.shipPic = pygame.image.load(resource_path("assets/ship.png"))
         self.shipPic = pygame.transform.scale(self.shipPic, (int(342/5), int(598/5)))#342,598
         self.shipPosition = self.shipPic.get_rect()
         self.shipPosition.x = 300
         self.shipPosition.y = 300
 
     def initBlackHole(self):
-        self.blackHolePic = pygame.image.load("bhole.png")
-        self.blackHolePic = pygame.transform.scale(self.blackHolePic, (int(1000/5), int(1080/5)))#1000,1080
+        self.blackHolePic = pygame.image.load(resource_path("assets/bhole.png"))
+        self.blackHolePic = pygame.transform.scale(self.blackHolePic, (int(1000/5*self.blackHoleMassMultiplier), int(1080/5*self.blackHoleMassMultiplier)))#1000,1080
         self.blackHolePosition = self.blackHolePic.get_rect()
         self.blackHolePosition.x = 50
         self.blackHolePosition.y = 50
     
     def initPlanets(self):
-        planetPic = pygame.image.load("earth.png")
+        planetPic = pygame.image.load(resource_path("assets/earth.png"))
         planetPic = pygame.transform.scale(planetPic, (int(2579/70), int(2563/70)))
         for i in range(0, self.numPlanets):
-            #250,226
             planetPosition = planetPic.get_rect()
             while(planetPosition.colliderect(self.shipPosition) or planetPosition.colliderect(self.blackHolePosition) or self.checkCollideWithOtherPlanets(planetPosition)):
                 planetPosition.x = random.randint(0,self.dis_width-int(250/5))
