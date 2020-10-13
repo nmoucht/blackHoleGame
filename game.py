@@ -1,9 +1,12 @@
 import pygame    
+import time
+import random
 
 class gameObject:
     white = (255, 255, 255)
     black = (0, 0, 0)
     red = (255, 0, 0)
+    green = (0, 255, 0)
     x1 = 300
     y1 = 300
 
@@ -11,14 +14,27 @@ class gameObject:
     dis_height = 600
     dis = pygame.display.set_mode((dis_width, dis_height))
     game_over = False
+    clock = pygame.time.Clock()
+
     shipPic = ""
     shipPosition = ""
-    clock = pygame.time.Clock()
+    blackHolePic = ""
+    blackHolePosition = ""
+    blackHolexRate = 5
+    blackHoleyRate = 5
+
+    numPlanets = 10
+    numPlanetsGot = 0
+
+    planetList = []
+    planetPosition = []
 
     def initGame(self):
         pygame.init()
         pygame.display.set_caption('Escape the black hole')
         self.initShip()
+        self.initBlackHole()
+        self.initPlanets()
 
     def initShip(self):
         self.shipPic = pygame.image.load("ship.png")
@@ -27,27 +43,90 @@ class gameObject:
         self.shipPosition.x = 300
         self.shipPosition.y = 300
 
+    def initBlackHole(self):
+        self.blackHolePic = pygame.image.load("black_hole.jpg")
+        self.blackHolePic = pygame.transform.scale(self.blackHolePic, (int(1000/5), int(1080/5)))#1000,1080
+        self.blackHolePosition = self.blackHolePic.get_rect()
+        self.blackHolePosition.x = 50
+        self.blackHolePosition.y = 50
+    
+    def initPlanets(self):
+        for i in range(0, self.numPlanets):
+            planetPic = pygame.image.load("planet.png")
+            planetPic = pygame.transform.scale(planetPic, (int(250/5), int(226/5)))#250,226
+            planetPosition = planetPic.get_rect()
+            while(planetPosition.colliderect(self.shipPosition) or planetPosition.colliderect(self.blackHolePosition) or self.checkCollideWithOtherPlanets(planetPosition)):
+                planetPosition.x = random.randint(0,self.dis_width-int(250/5))
+                planetPosition.y = random.randint(0,self.dis_height - int(226/5))
+            self.planetPosition.append(planetPosition)
+            self.planetList.append(planetPic)
+    
+    def checkCollideWithOtherPlanets(self, pos):
+        for elt in self.planetPosition:
+            if(elt.colliderect(pos)):
+                return True
+        return False
+
     def updateShip(self,x,y):
         self.shipPosition.x += x
         self.shipPosition.y += y
 
+    def updateBlackHole(self):
+        self.blackHolePosition.x += self.blackHolexRate
+        self.blackHolePosition.y += self.blackHoleyRate
+        if(self.isOutsideBounds(self.blackHolePosition)):
+            self.updateBlackHoleRate()
+    
+    def updateBlackHoleRate(self):
+        if self.isPosOutsideBounds(self.blackHolePosition.x, self.dis_width, self.blackHolePosition.width):
+            self.blackHolexRate *=-1
+        if self.isPosOutsideBounds(self.blackHolePosition.y, self.dis_height, self.blackHolePosition.height):
+            self.blackHoleyRate *=-1
+
+    def isOutsideBounds(self, obj):
+        if self.isPosOutsideBounds(obj.x, self.dis_width, obj.width) or self.isPosOutsideBounds(obj.y, self.dis_height, obj.height):
+            return True
+        return False
+    
+    def isPosOutsideBounds(self, pos, bound, adder):
+        if pos+adder >= bound or pos < 0:
+            return True
+        return False
+
     def checkGameOver(self):
-        if self.shipPosition.x >= self.dis_width or self.shipPosition.x < 0 or self.shipPosition.y >= self.dis_height or self.shipPosition.y < 0:
-            self.exitGame()
+        if(self.isOutsideBounds(self.shipPosition) or self.shipPosition.colliderect(self.blackHolePosition)):
+            self.exitGame("You Lost.", self.red)
+
+        if(self.numPlanets == self.numPlanetsGot):
+            self.exitGame("You Won!", self.green)
 
     def renderGame(self):
+        self.updateBlackHole()
         self.dis.fill(self.white)
         self.dis.blit(self.shipPic, self.shipPosition)
-        # pygame.display.flip()
-    
+        self.dis.blit(self.blackHolePic, self.blackHolePosition)
+        got_planets = []
+        for i in range(0,len(self.planetPosition)):
+            if(self.shipPosition.colliderect(self.planetPosition[i])):
+                got_planets.append(i)
+                self.numPlanetsGot += 1
+                continue
+            self.dis.blit(self.planetList[i], self.planetPosition[i])
+        for elt in got_planets:
+            del self.planetPosition[elt]
+            del self.planetList[elt]
+        font_style = pygame.font.SysFont(None, 20)
+        mesg = font_style.render(str(self.numPlanetsGot) +"/"+str(self.numPlanets)+" planets", True, self.black)
+        self.dis.blit(mesg, [self.dis_width-80, 10])  
         pygame.display.update()
         self.clock.tick(30)
 
-    def exitGame(self):
+    def exitGame(self, message, color):
         font_style = pygame.font.SysFont(None, 50)
-        mesg = font_style.render("you lost", True, self.black)
+        mesg = font_style.render(message, True, color)
         self.dis.blit(mesg, [self.dis_width/2, self.dis_height/2])
         pygame.display.update()
+        # time.sleep(2)
         pygame.quit()
         quit()
 
